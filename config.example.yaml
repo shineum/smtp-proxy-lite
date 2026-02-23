@@ -1,0 +1,49 @@
+# SMTP Proxy Lite - Example Configuration
+#
+# This file is OPTIONAL. All settings can be configured via environment
+# variables, which always take precedence over YAML values.
+#
+# Usage: smtp-proxy --config config.yaml
+
+smtp:
+  # Address to listen on (env: SMTP_LISTEN, default: ":2525")
+  listen: ":2525"
+
+  # SMTP AUTH credentials (env: SMTP_USERNAME, SMTP_PASSWORD)
+  # Leave empty to disable authentication
+  username: ""
+  password: ""
+
+  # Maximum message size in bytes (env: SMTP_MAX_MESSAGE_SIZE, default: 26214400 = 25MB)
+  max_message_size: 26214400
+
+# Microsoft Graph API settings
+# All four fields must be set to enable the Graph provider.
+# If any are missing, the stdout provider is used instead.
+graph:
+  # Azure AD tenant ID (env: GRAPH_TENANT_ID)
+  tenant_id: ""
+
+  # Azure AD application (client) ID (env: GRAPH_CLIENT_ID)
+  client_id: ""
+
+  # Azure AD client secret (env: GRAPH_CLIENT_SECRET)
+  client_secret: ""
+
+  # Email address to send from (env: GRAPH_SENDER)
+  # Must have Mail.Send permission in the Azure AD app
+  sender: ""
+
+# TLS certificate settings
+# If both are empty, a self-signed certificate is generated automatically.
+tls:
+  # Path to TLS certificate file (env: TLS_CERT_FILE)
+  cert_file: ""
+
+  # Path to TLS private key file (env: TLS_KEY_FILE)
+  key_file: ""
+
+# Logging settings
+logging:
+  # Log level: debug, info, warn, error (env: LOG_LEVEL, default: "info")
+  level: "info"

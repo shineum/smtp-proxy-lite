@@ -1,0 +1,5 @@
+.moai/
+.claude/
+.git/
+*.md
+!README.md
