@@ -7,6 +7,7 @@ COPY . .
 RUN go mod tidy && CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /smtp-proxy ./cmd/smtp-proxy
 
 FROM scratch
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /smtp-proxy /smtp-proxy
 EXPOSE 2525
 ENTRYPOINT ["/smtp-proxy"]
