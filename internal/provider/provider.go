@@ -4,7 +4,7 @@ package provider
 import (
 	"context"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/email"
+	"github.com/shineum/smtp-proxy-lite/internal/email"
 )
 
 // Provider is the interface that email delivery backends must implement.

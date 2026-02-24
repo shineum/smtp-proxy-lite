@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/parser"
-	"github.com/sungwon/smtp-proxy-lite/internal/provider"
+	"github.com/shineum/smtp-proxy-lite/internal/parser"
+	"github.com/shineum/smtp-proxy-lite/internal/provider"
 )
 
 // Session states for the SMTP state machine.

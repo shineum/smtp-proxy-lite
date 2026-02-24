@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/email"
+	"github.com/shineum/smtp-proxy-lite/internal/email"
 )
 
 // Provider prints email messages to stdout in a human-readable format.

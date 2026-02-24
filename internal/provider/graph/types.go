@@ -4,7 +4,7 @@ package graph
 import (
 	"encoding/base64"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/email"
+	"github.com/shineum/smtp-proxy-lite/internal/email"
 )
 
 // sendMailRequest is the top-level request body for the Graph API sendMail endpoint.

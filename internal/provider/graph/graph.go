@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/email"
+	"github.com/shineum/smtp-proxy-lite/internal/email"
 )
 
 // GraphProviderConfig holds the configuration for creating a GraphProvider.

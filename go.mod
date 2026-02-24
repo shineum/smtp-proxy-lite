@@ -1,4 +1,4 @@
-module github.com/sungwon/smtp-proxy-lite
+module github.com/shineum/smtp-proxy-lite
 
 go 1.23.0
 

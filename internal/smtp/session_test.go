@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/email"
+	"github.com/shineum/smtp-proxy-lite/internal/email"
 )
 
 // mockProvider implements provider.Provider for testing.

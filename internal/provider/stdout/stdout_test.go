@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/email"
+	"github.com/shineum/smtp-proxy-lite/internal/email"
 )
 
 func TestSend_BasicEmail(t *testing.T) {

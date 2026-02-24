@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/email"
+	"github.com/shineum/smtp-proxy-lite/internal/email"
 )
 
 func TestBuildSendMailRequest_BasicEmail(t *testing.T) {

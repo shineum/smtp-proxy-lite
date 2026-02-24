@@ -12,7 +12,7 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/email"
+	"github.com/shineum/smtp-proxy-lite/internal/email"
 )
 
 // Parse parses a raw RFC 5322 email message into an Email struct.

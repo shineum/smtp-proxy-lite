@@ -9,12 +9,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/config"
-	"github.com/sungwon/smtp-proxy-lite/internal/provider"
-	"github.com/sungwon/smtp-proxy-lite/internal/provider/graph"
-	"github.com/sungwon/smtp-proxy-lite/internal/provider/stdout"
-	"github.com/sungwon/smtp-proxy-lite/internal/smtp"
-	smtptls "github.com/sungwon/smtp-proxy-lite/internal/tls"
+	"github.com/shineum/smtp-proxy-lite/internal/config"
+	"github.com/shineum/smtp-proxy-lite/internal/provider"
+	"github.com/shineum/smtp-proxy-lite/internal/provider/graph"
+	"github.com/shineum/smtp-proxy-lite/internal/provider/stdout"
+	"github.com/shineum/smtp-proxy-lite/internal/smtp"
+	smtptls "github.com/shineum/smtp-proxy-lite/internal/tls"
 )
 
 func main() {

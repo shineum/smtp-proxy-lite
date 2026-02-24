@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sungwon/smtp-proxy-lite/internal/provider"
+	"github.com/shineum/smtp-proxy-lite/internal/provider"
 )
 
 // shutdownTimeout is the maximum time to wait for in-flight connections
