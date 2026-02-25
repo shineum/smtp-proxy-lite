@@ -198,14 +198,11 @@ func readPartContent(part *multipart.Part) ([]byte, error) {
 
 	switch encoding {
 	case "base64":
-		decoded, err := base64.StdEncoding.DecodeString(
-			strings.ReplaceAll(string(raw), "\n", ""),
-		)
+		cleaned := strings.NewReplacer("\r", "", "\n", "").Replace(string(raw))
+		decoded, err := base64.StdEncoding.DecodeString(cleaned)
 		if err != nil {
 			// Try with RawStdEncoding for unpadded base64
-			decoded, err = base64.RawStdEncoding.DecodeString(
-				strings.ReplaceAll(string(raw), "\n", ""),
-			)
+			decoded, err = base64.RawStdEncoding.DecodeString(cleaned)
 			if err != nil {
 				return nil, fmt.Errorf("failed to decode base64 content: %w", err)
 			}
@@ -229,7 +226,14 @@ func extractFilename(part *multipart.Part, params map[string]string) string {
 	if name, ok := params["name"]; ok && name != "" {
 		return name
 	}
-	return ""
+	// Generate fallback name from media type to satisfy Graph API's required "name" property
+	if mediaType, _, err := mime.ParseMediaType(part.Header.Get("Content-Type")); err == nil {
+		parts := strings.SplitN(mediaType, "/", 2)
+		if len(parts) == 2 {
+			return "attachment." + parts[1]
+		}
+	}
+	return "attachment"
 }
 
 // parseAddressList splits a comma-separated address list into individual addresses.

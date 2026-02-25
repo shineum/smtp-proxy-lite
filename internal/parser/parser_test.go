@@ -268,6 +268,90 @@ func TestParseRawHeaders(t *testing.T) {
 	}
 }
 
+func TestParseBase64AttachmentWithCRLF(t *testing.T) {
+	t.Parallel()
+
+	raw := []byte("From: sender@example.com\r\n" +
+		"To: recipient@example.com\r\n" +
+		"Subject: CRLF Base64\r\n" +
+		"Content-Type: multipart/mixed; boundary=bound\r\n" +
+		"\r\n" +
+		"--bound\r\n" +
+		"Content-Type: text/plain\r\n" +
+		"\r\n" +
+		"body\r\n" +
+		"--bound\r\n" +
+		"Content-Type: application/pdf; name=\"file.pdf\"\r\n" +
+		"Content-Disposition: attachment; filename=\"file.pdf\"\r\n" +
+		"Content-Transfer-Encoding: base64\r\n" +
+		"\r\n" +
+		"SGVs\r\n" +
+		"bG8g\r\n" +
+		"V29y\r\n" +
+		"bGQ=\r\n" +
+		"--bound--\r\n")
+
+	msg, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(msg.Attachments) != 1 {
+		t.Fatalf("Attachments: got %d, want 1", len(msg.Attachments))
+	}
+
+	att := msg.Attachments[0]
+	if att.Filename != "file.pdf" {
+		t.Errorf("Filename: got %q, want %q", att.Filename, "file.pdf")
+	}
+	if string(att.Content) != "Hello World" {
+		t.Errorf("Content: got %q, want %q", string(att.Content), "Hello World")
+	}
+}
+
+func TestParseAttachmentWithoutFilename(t *testing.T) {
+	t.Parallel()
+
+	raw := []byte(strings.Join([]string{
+		"From: sender@example.com",
+		"To: recipient@example.com",
+		"Subject: No Filename",
+		"Content-Type: multipart/mixed; boundary=bound",
+		"",
+		"--bound",
+		"Content-Type: text/plain",
+		"",
+		"body",
+		"--bound",
+		"Content-Type: application/pdf",
+		"Content-Disposition: attachment",
+		"Content-Transfer-Encoding: base64",
+		"",
+		"SGVsbG8gV29ybGQ=",
+		"--bound--",
+	}, "\r\n"))
+
+	msg, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(msg.Attachments) != 1 {
+		t.Fatalf("Attachments: got %d, want 1", len(msg.Attachments))
+	}
+
+	att := msg.Attachments[0]
+	if att.Filename == "" {
+		t.Error("Filename should not be empty for attachments without explicit filename")
+	}
+	if att.Filename != "attachment.pdf" {
+		t.Errorf("Filename: got %q, want %q", att.Filename, "attachment.pdf")
+	}
+	if string(att.Content) != "Hello World" {
+		t.Errorf("Content: got %q, want %q", string(att.Content), "Hello World")
+	}
+}
+
 func TestParseNestedMultipart(t *testing.T) {
 	t.Parallel()
 
