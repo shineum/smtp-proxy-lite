@@ -12,6 +12,7 @@ import (
 	"github.com/shineum/smtp-proxy-lite/internal/config"
 	"github.com/shineum/smtp-proxy-lite/internal/provider"
 	"github.com/shineum/smtp-proxy-lite/internal/provider/graph"
+	"github.com/shineum/smtp-proxy-lite/internal/provider/ses"
 	"github.com/shineum/smtp-proxy-lite/internal/provider/stdout"
 	"github.com/shineum/smtp-proxy-lite/internal/smtp"
 	smtptls "github.com/shineum/smtp-proxy-lite/internal/tls"
@@ -119,10 +120,36 @@ func setupLogger(level string) {
 }
 
 // selectProvider chooses the email delivery backend based on configuration.
-// If all Graph API credentials are set, the Graph provider is used.
-// Otherwise, the stdout provider is used as a fallback.
+// If the PROVIDER env var is set, it takes precedence.
+// Otherwise, it falls back to auto-detection (Graph if configured, else stdout).
 func selectProvider(cfg *config.Config) provider.Provider {
-	if cfg.GraphConfigured() {
+	switch cfg.Provider {
+	case "ses":
+		if !cfg.SESConfigured() {
+			slog.Error("SES provider selected but SES_REGION and SES_SENDER are required")
+			os.Exit(1)
+		}
+		slog.Info("using AWS SES provider",
+			"region", cfg.SES.Region,
+			"sender", cfg.SES.Sender,
+		)
+		p, err := ses.New(context.Background(), ses.SESProviderConfig{
+			Region:          cfg.SES.Region,
+			AccessKeyID:     cfg.SES.AccessKeyID,
+			SecretAccessKey: cfg.SES.SecretAccessKey,
+			Sender:          cfg.SES.Sender,
+		})
+		if err != nil {
+			slog.Error("failed to create SES provider", "error", err)
+			os.Exit(1)
+		}
+		return p
+
+	case "graph":
+		if !cfg.GraphConfigured() {
+			slog.Error("Graph provider selected but GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, and GRAPH_SENDER are required")
+			os.Exit(1)
+		}
 		slog.Info("using Microsoft Graph provider",
 			"sender", cfg.Graph.Sender,
 		)
@@ -132,8 +159,47 @@ func selectProvider(cfg *config.Config) provider.Provider {
 			ClientSecret: cfg.Graph.ClientSecret,
 			Sender:       cfg.Graph.Sender,
 		})
-	}
 
-	slog.Info("Graph API not configured, using stdout provider")
-	return stdout.New()
+	case "stdout":
+		slog.Info("using stdout provider")
+		return stdout.New()
+
+	case "":
+		// Auto-detection fallback for backward compatibility
+		if cfg.GraphConfigured() {
+			slog.Info("using Microsoft Graph provider (auto-detected)",
+				"sender", cfg.Graph.Sender,
+			)
+			return graph.New(graph.GraphProviderConfig{
+				TenantID:     cfg.Graph.TenantID,
+				ClientID:     cfg.Graph.ClientID,
+				ClientSecret: cfg.Graph.ClientSecret,
+				Sender:       cfg.Graph.Sender,
+			})
+		}
+		if cfg.SESConfigured() {
+			slog.Info("using AWS SES provider (auto-detected)",
+				"region", cfg.SES.Region,
+				"sender", cfg.SES.Sender,
+			)
+			p, err := ses.New(context.Background(), ses.SESProviderConfig{
+				Region:          cfg.SES.Region,
+				AccessKeyID:     cfg.SES.AccessKeyID,
+				SecretAccessKey: cfg.SES.SecretAccessKey,
+				Sender:          cfg.SES.Sender,
+			})
+			if err != nil {
+				slog.Error("failed to create SES provider", "error", err)
+				os.Exit(1)
+			}
+			return p
+		}
+		slog.Info("no provider configured, using stdout provider")
+		return stdout.New()
+
+	default:
+		slog.Error("unknown provider", "provider", cfg.Provider)
+		os.Exit(1)
+		return nil
+	}
 }

@@ -16,10 +16,12 @@ const defaultMaxMessageSize = 26214400
 
 // Config holds the complete application configuration.
 type Config struct {
-	SMTP    SMTPConfig    `yaml:"smtp"`
-	Graph   GraphConfig   `yaml:"graph"`
-	TLS     TLSConfig     `yaml:"tls"`
-	Logging LoggingConfig `yaml:"logging"`
+	Provider string        `yaml:"provider"`
+	SMTP     SMTPConfig    `yaml:"smtp"`
+	Graph    GraphConfig   `yaml:"graph"`
+	SES      SESConfig     `yaml:"ses"`
+	TLS      TLSConfig     `yaml:"tls"`
+	Logging  LoggingConfig `yaml:"logging"`
 }
 
 // SMTPConfig holds SMTP server configuration.
@@ -36,6 +38,14 @@ type GraphConfig struct {
 	ClientID     string `yaml:"client_id"`
 	ClientSecret string `yaml:"client_secret"`
 	Sender       string `yaml:"sender"`
+}
+
+// SESConfig holds AWS SES configuration.
+type SESConfig struct {
+	Region          string `yaml:"region"`
+	AccessKeyID     string `yaml:"access_key_id"`
+	SecretAccessKey string `yaml:"secret_access_key"`
+	Sender          string `yaml:"sender"`
 }
 
 // TLSConfig holds TLS certificate file paths.
@@ -88,6 +98,11 @@ func (c *Config) GraphConfigured() bool {
 		c.Graph.Sender != ""
 }
 
+// SESConfigured returns true if the required SES credentials are set.
+func (c *Config) SESConfigured() bool {
+	return c.SES.Region != "" && c.SES.Sender != ""
+}
+
 // AuthEnabled returns true if both SMTP username and password are set.
 func (c *Config) AuthEnabled() bool {
 	return c.SMTP.Username != "" && c.SMTP.Password != ""
@@ -103,6 +118,10 @@ func (c *Config) applyDefaults() {
 // applyEnvVars overrides configuration with environment variable values.
 // Only non-empty environment variables override existing values.
 func (c *Config) applyEnvVars() {
+	if v := os.Getenv("PROVIDER"); v != "" {
+		c.Provider = strings.ToLower(v)
+	}
+
 	if v := os.Getenv("SMTP_LISTEN"); v != "" {
 		c.SMTP.Listen = v
 	}
@@ -129,6 +148,19 @@ func (c *Config) applyEnvVars() {
 	}
 	if v := os.Getenv("GRAPH_SENDER"); v != "" {
 		c.Graph.Sender = v
+	}
+
+	if v := os.Getenv("SES_REGION"); v != "" {
+		c.SES.Region = v
+	}
+	if v := os.Getenv("SES_ACCESS_KEY_ID"); v != "" {
+		c.SES.AccessKeyID = v
+	}
+	if v := os.Getenv("SES_SECRET_ACCESS_KEY"); v != "" {
+		c.SES.SecretAccessKey = v
+	}
+	if v := os.Getenv("SES_SENDER"); v != "" {
+		c.SES.Sender = v
 	}
 
 	if v := os.Getenv("TLS_CERT_FILE"); v != "" {

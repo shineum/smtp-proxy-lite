@@ -7,12 +7,12 @@ import (
 )
 
 func TestLoad_DefaultValues(t *testing.T) {
-	t.Parallel()
-
 	// Clear all relevant env vars for this test
 	envVars := []string{
+		"PROVIDER",
 		"SMTP_LISTEN", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_MAX_MESSAGE_SIZE",
 		"GRAPH_TENANT_ID", "GRAPH_CLIENT_ID", "GRAPH_CLIENT_SECRET", "GRAPH_SENDER",
+		"SES_REGION", "SES_ACCESS_KEY_ID", "SES_SECRET_ACCESS_KEY", "SES_SENDER",
 		"TLS_CERT_FILE", "TLS_KEY_FILE", "LOG_LEVEL",
 	}
 	for _, env := range envVars {
@@ -39,14 +39,19 @@ func TestLoad_DefaultValues(t *testing.T) {
 	if cfg.Graph.TenantID != "" {
 		t.Errorf("Graph.TenantID: got %q, want empty", cfg.Graph.TenantID)
 	}
+	if cfg.Provider != "" {
+		t.Errorf("Provider: got %q, want empty", cfg.Provider)
+	}
 	if cfg.Logging.Level != "info" {
 		t.Errorf("Logging.Level: got %q, want %q", cfg.Logging.Level, "info")
+	}
+	if cfg.SES.Region != "" {
+		t.Errorf("SES.Region: got %q, want empty", cfg.SES.Region)
 	}
 }
 
 func TestLoad_EnvVarOverrides(t *testing.T) {
-	t.Parallel()
-
+	t.Setenv("PROVIDER", "ses")
 	t.Setenv("SMTP_LISTEN", ":9025")
 	t.Setenv("SMTP_USERNAME", "admin")
 	t.Setenv("SMTP_PASSWORD", "secret123")
@@ -55,6 +60,10 @@ func TestLoad_EnvVarOverrides(t *testing.T) {
 	t.Setenv("GRAPH_CLIENT_ID", "cid-456")
 	t.Setenv("GRAPH_CLIENT_SECRET", "csecret-789")
 	t.Setenv("GRAPH_SENDER", "noreply@example.com")
+	t.Setenv("SES_REGION", "us-east-1")
+	t.Setenv("SES_ACCESS_KEY_ID", "AKIAIOSFODNN7EXAMPLE")
+	t.Setenv("SES_SECRET_ACCESS_KEY", "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
+	t.Setenv("SES_SENDER", "ses@example.com")
 	t.Setenv("TLS_CERT_FILE", "/certs/cert.pem")
 	t.Setenv("TLS_KEY_FILE", "/certs/key.pem")
 	t.Setenv("LOG_LEVEL", "DEBUG")
@@ -64,6 +73,9 @@ func TestLoad_EnvVarOverrides(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	if cfg.Provider != "ses" {
+		t.Errorf("Provider: got %q, want %q", cfg.Provider, "ses")
+	}
 	if cfg.SMTP.Listen != ":9025" {
 		t.Errorf("SMTP.Listen: got %q, want %q", cfg.SMTP.Listen, ":9025")
 	}
@@ -87,6 +99,18 @@ func TestLoad_EnvVarOverrides(t *testing.T) {
 	}
 	if cfg.Graph.Sender != "noreply@example.com" {
 		t.Errorf("Graph.Sender: got %q, want %q", cfg.Graph.Sender, "noreply@example.com")
+	}
+	if cfg.SES.Region != "us-east-1" {
+		t.Errorf("SES.Region: got %q, want %q", cfg.SES.Region, "us-east-1")
+	}
+	if cfg.SES.AccessKeyID != "AKIAIOSFODNN7EXAMPLE" {
+		t.Errorf("SES.AccessKeyID: got %q, want %q", cfg.SES.AccessKeyID, "AKIAIOSFODNN7EXAMPLE")
+	}
+	if cfg.SES.SecretAccessKey != "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" {
+		t.Errorf("SES.SecretAccessKey: got %q, want %q", cfg.SES.SecretAccessKey, "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY")
+	}
+	if cfg.SES.Sender != "ses@example.com" {
+		t.Errorf("SES.Sender: got %q, want %q", cfg.SES.Sender, "ses@example.com")
 	}
 	if cfg.TLS.CertFile != "/certs/cert.pem" {
 		t.Errorf("TLS.CertFile: got %q, want %q", cfg.TLS.CertFile, "/certs/cert.pem")
@@ -177,8 +201,6 @@ func TestAuthEnabled(t *testing.T) {
 }
 
 func TestLoadFromFile(t *testing.T) {
-	t.Parallel()
-
 	yamlContent := `
 smtp:
   listen: ":3025"
@@ -205,8 +227,10 @@ logging:
 
 	// Clear env vars to ensure YAML values come through
 	envVars := []string{
+		"PROVIDER",
 		"SMTP_LISTEN", "SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_MAX_MESSAGE_SIZE",
 		"GRAPH_TENANT_ID", "GRAPH_CLIENT_ID", "GRAPH_CLIENT_SECRET", "GRAPH_SENDER",
+		"SES_REGION", "SES_ACCESS_KEY_ID", "SES_SECRET_ACCESS_KEY", "SES_SENDER",
 		"TLS_CERT_FILE", "TLS_KEY_FILE", "LOG_LEVEL",
 	}
 	for _, env := range envVars {
@@ -236,8 +260,6 @@ logging:
 }
 
 func TestLoadFromFile_EnvOverridesYAML(t *testing.T) {
-	t.Parallel()
-
 	yamlContent := `
 smtp:
   listen: ":3025"
@@ -299,9 +321,88 @@ func TestLoadFromFile_InvalidYAML(t *testing.T) {
 	}
 }
 
-func TestLoad_InvalidMaxMessageSize(t *testing.T) {
+func TestSESConfigured(t *testing.T) {
 	t.Parallel()
 
+	tests := []struct {
+		name   string
+		ses    SESConfig
+		expect bool
+	}{
+		{
+			name:   "region and sender set",
+			ses:    SESConfig{Region: "us-east-1", Sender: "ses@example.com"},
+			expect: true,
+		},
+		{
+			name:   "all fields set",
+			ses:    SESConfig{Region: "us-east-1", AccessKeyID: "key", SecretAccessKey: "secret", Sender: "ses@example.com"},
+			expect: true,
+		},
+		{
+			name:   "missing region",
+			ses:    SESConfig{Sender: "ses@example.com"},
+			expect: false,
+		},
+		{
+			name:   "missing sender",
+			ses:    SESConfig{Region: "us-east-1"},
+			expect: false,
+		},
+		{
+			name:   "none set",
+			ses:    SESConfig{},
+			expect: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := &Config{SES: tt.ses}
+			if got := cfg.SESConfigured(); got != tt.expect {
+				t.Errorf("SESConfigured(): got %v, want %v", got, tt.expect)
+			}
+		})
+	}
+}
+
+func TestProviderEnvVar(t *testing.T) {
+	tests := []struct {
+		name     string
+		envValue string
+		want     string
+	}{
+		{name: "ses", envValue: "ses", want: "ses"},
+		{name: "graph", envValue: "graph", want: "graph"},
+		{name: "stdout", envValue: "stdout", want: "stdout"},
+		{name: "uppercase SES", envValue: "SES", want: "ses"},
+		{name: "empty", envValue: "", want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("PROVIDER", tt.envValue)
+			// Clear other env vars
+			for _, env := range []string{
+				"SMTP_LISTEN", "SMTP_USERNAME", "SMTP_PASSWORD",
+				"GRAPH_TENANT_ID", "GRAPH_CLIENT_ID", "GRAPH_CLIENT_SECRET", "GRAPH_SENDER",
+				"SES_REGION", "SES_ACCESS_KEY_ID", "SES_SECRET_ACCESS_KEY", "SES_SENDER",
+			} {
+				t.Setenv(env, "")
+			}
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if cfg.Provider != tt.want {
+				t.Errorf("Provider: got %q, want %q", cfg.Provider, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoad_InvalidMaxMessageSize(t *testing.T) {
 	t.Setenv("SMTP_MAX_MESSAGE_SIZE", "not-a-number")
 
 	cfg, err := Load()
