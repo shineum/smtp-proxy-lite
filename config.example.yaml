@@ -5,6 +5,11 @@
 #
 # Usage: smtp-proxy --config config.yaml
 
+# Email delivery provider (env: PROVIDER)
+# Options: stdout, graph, ses
+# If not set, auto-detects based on which provider credentials are configured.
+provider: ""
+
 smtp:
   # Address to listen on (env: SMTP_LISTEN, default: ":2525")
   listen: ":2525"
@@ -17,9 +22,8 @@ smtp:
   # Maximum message size in bytes (env: SMTP_MAX_MESSAGE_SIZE, default: 26214400 = 25MB)
   max_message_size: 26214400
 
-# Microsoft Graph API settings
+# Microsoft Graph API settings (provider: graph)
 # All four fields must be set to enable the Graph provider.
-# If any are missing, the stdout provider is used instead.
 graph:
   # Azure AD tenant ID (env: GRAPH_TENANT_ID)
   tenant_id: ""
@@ -32,6 +36,23 @@ graph:
 
   # Email address to send from (env: GRAPH_SENDER)
   # Must have Mail.Send permission in the Azure AD app
+  sender: ""
+
+# AWS SES settings (provider: ses)
+# Region and sender are required. Access keys are optional (uses default credential chain).
+ses:
+  # AWS region (env: SES_REGION)
+  region: ""
+
+  # AWS access key ID (env: SES_ACCESS_KEY_ID)
+  # Optional: omit to use IAM roles or default credential chain
+  access_key_id: ""
+
+  # AWS secret access key (env: SES_SECRET_ACCESS_KEY)
+  secret_access_key: ""
+
+  # Email address to send from (env: SES_SENDER)
+  # Must be verified in SES
   sender: ""
 
 # TLS certificate settings
